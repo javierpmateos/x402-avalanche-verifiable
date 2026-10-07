@@ -1,0 +1,20 @@
+{
+  "signer_private_key": "anvil/hardhat test account #0 (public test key)",
+  "digest": "0x976effa140925aa5a40d96559baa4a8b17a59942cb4abcefb690b498ffe64aca",
+  "attestation": {
+    "format": "eip712",
+    "payload": {
+      "version": 1,
+      "network": "eip155:43113",
+      "transaction": "0xabababababababababababababababababababababababababababababababab",
+      "payer": "0x70997970C51812dc3A010C7d01b50e0d17dc79C8",
+      "payee": "0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC",
+      "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+      "amount": "10000",
+      "facilitator": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+      "facilitatorFee": "0",
+      "observedAt": "1700000000"
+    },
+    "signature": "0xfb3af1b30f2170243f6db772bfd9f844489fb3f9be23801163026457f0cd472d4fadd3a69c87fbd60bdc291f4cc32b55b8292d33f8a1b8b766d937f2e5e1d7ff1b"
+  }
+}
