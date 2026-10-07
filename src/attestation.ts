@@ -230,7 +230,7 @@ export async function checkSettlement(
   } catch {
     return { outcome: "NOT_FOUND", detail: "no receipt for transaction" };
   }
-  const head = await client.getBlockNumber();
+  const head = await client.getBlockNumber({ cacheTime: 0 });
   if (head - receipt.blockNumber + 1n < BigInt(minConfirmations)) {
     return { outcome: "NOT_FOUND", detail: "not yet at the required depth" };
   }
