@@ -1,0 +1,64 @@
+{
+  "request": {
+    "method": "GET",
+    "url": "http://127.0.0.1:3000/api/data",
+    "headers": {}
+  },
+  "salt": "b36f37d733f5850af4a7cdb40364ede5ba9727081439a7fa438b94c7a1c3226c",
+  "attestation": {
+    "format": "eip712",
+    "payload": {
+      "version": 1,
+      "network": "eip155:43113",
+      "transaction": "0xc480ee94a64c704ace02adb64efb7661bfce07409391cbd4a386bc86b7ae14c2",
+      "payer": "0x3b62a66a4Fa94325ba7D53d0f643048F54Bd9f30",
+      "payee": "0xb1047d8c0647127374c67786168bBBd1370A987d",
+      "asset": "0x5425890298aed601595a70AB815c96711a31Bc65",
+      "amount": "10000",
+      "facilitator": "0x8078f2c50d52292F319e1923752839BD12AA4225",
+      "facilitatorFee": "0",
+      "observedAt": "1791425928"
+    },
+    "signature": "0xbf3aab0d424e9c6709a6ce1a1c76c8a5e808c96ca55d8ca2274c1b0572754cec45830c60e5e254cf45a6a9c45fcc1a060abd3cdff80e4bf44d4f5d6a99e373021b"
+  },
+  "transaction": "0xc480ee94a64c704ace02adb64efb7661bfce07409391cbd4a386bc86b7ae14c2",
+  "invoice": {
+    "invoiceId": "3e62f945-f1c7-4fc5-8614-b9c7e61e9032",
+    "issueDate": "1791425928",
+    "dueDate": "1791425928",
+    "paymentTerms": "paid via x402",
+    "purchaseOrderRef": "",
+    "issuer": "0xb1047d8c0647127374c67786168bBBd1370A987d",
+    "issuerTaxId": {
+      "scheme": "",
+      "id": ""
+    },
+    "recipient": "0x3b62a66a4Fa94325ba7D53d0f643048F54Bd9f30",
+    "recipientTaxId": {
+      "scheme": "",
+      "id": ""
+    },
+    "paymentToken": "0x5425890298aed601595a70AB815c96711a31Bc65",
+    "paymentAmount": "10000",
+    "fiatCurrency": "USD",
+    "fiatAmountMilliUnits": "10",
+    "fxRateScaled": "0",
+    "fxOracle": "0x0000000000000000000000000000000000000000",
+    "fxTimestamp": "0",
+    "taxes": [],
+    "lineItems": [
+      {
+        "description": "Sale of http://127.0.0.1:3000/api/data",
+        "quantityScaled": "1000",
+        "unit": "request",
+        "unitPriceMilliUnits": "10",
+        "lineTotalMilliUnits": "10",
+        "taxRefIndex": "0"
+      }
+    ],
+    "jurisdiction": "",
+    "regulatoryData": "0x",
+    "nonce": "1"
+  },
+  "signature": "0xf96ec05e0fc2a7f1539eda8ab6f2af45f0fd10c3c33ef1551fe0719f858624fd506ffaa5e8ad36416031619f9ace307aa063b812b050c8e2f2c18ae5831af4911c"
+}

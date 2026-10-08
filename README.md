@@ -19,7 +19,28 @@ All three are bound to the same settlement transaction on Avalanche.
 | Facilitator attestation: sign, verify, settlement check (§6.3) | Done, tested, cross-checked with `eth_account` |
 | Attesting facilitator HTTP service (`/verify`, `/settle`, `/supported`) | Done, typechecked |
 | ERC-8342 Mode B: build, sign, commit, verify | Done, tested against the registrar bytecode |
-| Seller API and end-to-end receipt verifier | In progress |
+| Seller API, paying agent and end-to-end receipt verifier | Done, run on Fuji |
+
+## Run it on Fuji
+
+Live run: settlement [`0xc480ee94…14c2`](https://testnet.snowtrace.io/tx/0xc480ee94a64c704ace02adb64efb7661bfce07409391cbd4a386bc86b7ae14c2), receipt in [`examples/fuji-receipt.json`](examples/fuji-receipt.json).
+
+Three wallets: facilitator and seller need a little Fuji AVAX for gas (C-Chain), the agent needs Fuji USDC.
+
+```bash
+npx tsx src/run-facilitator.ts      # terminal 1, port 4021
+npx tsx src/seller.ts               # terminal 2, port 3000
+npx tsx src/agent.ts                # terminal 3, pays GET /api/data, writes receipt.json
+npx tsx src/verify-receipt.ts receipt.json
+```
+
+The verifier checks the attestation signature, the settlement on-chain (`MATCH`), the ERC-8342 invoice commitment and that the authorization nonce was derived from this exact request. It then replays the same receipt against a different request and a different facilitator; both are rejected:
+
+```
+[VALID]    receipt as issued
+[REJECTED] same payment, different request: request_nonce_mismatch
+[REJECTED] same payment, different expected facilitator: unexpected_facilitator
+```
 
 ## How each link works
 
