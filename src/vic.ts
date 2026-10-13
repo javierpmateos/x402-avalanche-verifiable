@@ -10,6 +10,7 @@ import {
   hashTypedData,
   parseEventLogs,
   recoverTypedDataAddress,
+  TransactionReceiptNotFoundError,
   type Account,
   type Hex,
   type PublicClient,
@@ -187,7 +188,20 @@ const TRANSFER_ABI = [
 /** Outcome of verifying an invoice commitment. */
 export type InvoiceCheck =
   | { valid: true; invoiceHash: Hex; paymentTxRef: Hex }
-  | { valid: false; reason: string };
+  | { valid: false; reason: string; unavailable?: true };
+
+/**
+ * A check that could not be completed because a chain read failed. It is not a
+ * finding about the invoice: `unavailable` keeps it apart from a real failure.
+ *
+ * @param what - The read that failed.
+ * @param error - The error it threw.
+ * @returns The check result.
+ */
+function readFailed(what: string, error: unknown): InvoiceCheck {
+  const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+  return { valid: false, unavailable: true, reason: `${what} failed: ${message}` };
+}
 
 /**
  * Verification per ERC-8342 §5 for Mode B: recompute the digest, check the
@@ -214,7 +228,12 @@ export async function verifyInvoiceCommitment(
       return { valid: false, reason: "line items and taxes do not add up to fiatAmountMilliUnits" };
     }
   }
-  const chainId = await client.getChainId();
+  let chainId;
+  try {
+    chainId = await client.getChainId();
+  } catch (error) {
+    return readFailed("eth_chainId", error);
+  }
   const digest = invoiceHash(invoice, chainId, registry);
   const signer = await recoverTypedDataAddress({
     domain: invoiceDomain(chainId, registry),
@@ -225,12 +244,17 @@ export async function verifyInvoiceCommitment(
   });
   if (getAddress(signer) !== getAddress(invoice.issuer)) return { valid: false, reason: "issuer signature does not verify" };
 
-  const [issuer, recipient, paymentTxRef] = (await client.readContract({
-    address: registry,
-    abi: REGISTRY_ABI,
-    functionName: "getCommitment",
-    args: [digest],
-  })) as [Hex, Hex, Hex];
+  let issuer: Hex, recipient: Hex, paymentTxRef: Hex;
+  try {
+    [issuer, recipient, paymentTxRef] = (await client.readContract({
+      address: registry,
+      abi: REGISTRY_ABI,
+      functionName: "getCommitment",
+      args: [digest],
+    })) as [Hex, Hex, Hex];
+  } catch (error) {
+    return readFailed("getCommitment", error);
+  }
   if (getAddress(issuer) === "0x0000000000000000000000000000000000000000") {
     return { valid: false, reason: "invoice is not committed" };
   }
@@ -241,8 +265,11 @@ export async function verifyInvoiceCommitment(
   let receipt;
   try {
     receipt = await client.getTransactionReceipt({ hash: paymentTxRef });
-  } catch {
-    return { valid: false, reason: "paymentTxRef is not a known transaction" };
+  } catch (error) {
+    if (error instanceof TransactionReceiptNotFoundError) {
+      return { valid: false, reason: "paymentTxRef is not a known transaction" };
+    }
+    return readFailed("eth_getTransactionReceipt", error);
   }
   if (receipt.status !== "success") return { valid: false, reason: "payment transaction reverted" };
   const paid = parseEventLogs({ abi: TRANSFER_ABI, logs: receipt.logs }).some(

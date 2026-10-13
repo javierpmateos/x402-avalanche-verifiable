@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { createPublicClient, http, type PublicClient } from "viem";
 import { avalancheFuji } from "viem/chains";
-import { verifyPaidRequest } from "./verifier.js";
+import { VerificationUnavailableError, verifyPaidRequest } from "./verifier.js";
 import { CANONICAL_REGISTRY } from "./vic.js";
 
 const FACILITATOR: `0x${string}` = "0x8078f2c50d52292F319e1923752839BD12AA4225";
@@ -36,7 +36,9 @@ async function attempt(label: string, input: typeof base) {
     console.log(`[VALID]    ${label}`);
     return res;
   } catch (e) {
-    console.log(`[REJECTED] ${label}: ${(e as Error).message}`);
+    // A failed chain read is not a rejection: report it as such.
+    const tag = e instanceof VerificationUnavailableError ? "[UNAVAILABLE]" : "[REJECTED] ";
+    console.log(`${tag} ${label}: ${(e as Error).message}`);
     return undefined;
   }
 }

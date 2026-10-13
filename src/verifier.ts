@@ -17,6 +17,15 @@ import {
   deriveRequestNonce,
 } from "./requestCommitment/binding.js";
 
+/**
+ * Verification could not be completed because a chain read failed. This is not
+ * a rejection: nothing was learned about the payment, the invoice or the
+ * facilitator, and the same input may verify once the network is reachable.
+ */
+export class VerificationUnavailableError extends Error {
+  override name = "VerificationUnavailableError";
+}
+
 const BIGINT_FIELDS = new Set([
   "issueDate",
   "dueDate",
@@ -164,6 +173,10 @@ export async function verifyPaidRequest(
     input.minConfirmations,
   );
 
+  if (settlement.outcome === "UNAVAILABLE") {
+    // Could not check: not a finding about the payment or the facilitator.
+    throw new VerificationUnavailableError(`settlement_unavailable: ${settlement.detail}`);
+  }
   if (settlement.outcome !== "MATCH") {
     throw new Error(
       settlement.outcome === "NOT_FOUND"
@@ -188,6 +201,9 @@ export async function verifyPaidRequest(
     );
 
   if (!invoiceResult.valid) {
+    if (invoiceResult.unavailable) {
+      throw new VerificationUnavailableError(`invoice_unavailable: ${invoiceResult.reason}`);
+    }
     throw new Error(
       "invalid_invoice_commitment",
     );

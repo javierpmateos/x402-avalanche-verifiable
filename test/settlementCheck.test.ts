@@ -49,7 +49,7 @@ async function settle(token: Hex, value: bigint): Promise<Hex> {
 }
 
 describe.skipIf(!LOCAL_RPC)("§6.3 settlement check on a local chain", () => {
-  it("MATCH, MISMATCH and NOT_FOUND stay distinct", async () => {
+  it("MATCH, MISMATCH, NOT_FOUND and UNAVAILABLE stay distinct", async () => {
     const token = await deployTestToken();
     const tx = await settle(token, 10_000n);
     const base: SettlementAttestationPayload = {
@@ -76,9 +76,10 @@ describe.skipIf(!LOCAL_RPC)("§6.3 settlement check on a local chain", () => {
     expect(
       (await checkSettlement(publicClient, await sign({ transaction: "0x" + "00".repeat(32) }))).outcome,
     ).toBe("NOT_FOUND");
+    // A client on another network cannot look: no finding either way.
     expect(
       (await checkSettlement(publicClient, await sign({ network: "eip155:43114" }))).outcome,
-    ).toBe("NOT_FOUND");
+    ).toBe("UNAVAILABLE");
     expect(
       (await checkSettlement(publicClient, await sign({}), 1000)).outcome,
     ).toBe("NOT_FOUND");

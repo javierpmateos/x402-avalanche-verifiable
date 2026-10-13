@@ -11,6 +11,7 @@ import {
   isAddress,
   parseEventLogs,
   recoverTypedDataAddress,
+  TransactionReceiptNotFoundError,
   type Account,
   type Hex,
   type PublicClient,
@@ -186,11 +187,28 @@ export async function verifyAttestationSignature(
   return { valid: true, signer };
 }
 
-/** §6.3: three outcomes, kept distinct. */
+/**
+ * §6.3: four outcomes, kept distinct. NOT_FOUND and MISMATCH are findings about
+ * the settlement and only come from a completed lookup; UNAVAILABLE means the
+ * lookup itself could not be completed and says nothing about the facilitator.
+ */
 export type SettlementOutcome =
   | { outcome: "NOT_FOUND"; detail: string }
   | { outcome: "MATCH" }
-  | { outcome: "MISMATCH"; detail: string };
+  | { outcome: "MISMATCH"; detail: string }
+  | { outcome: "UNAVAILABLE"; detail: string };
+
+/**
+ * Describes a failed RPC call for an UNAVAILABLE outcome.
+ *
+ * @param what - The call that failed.
+ * @param error - The error it threw.
+ * @returns The detail string.
+ */
+function lookupFailed(what: string, error: unknown): string {
+  const message = error instanceof Error ? error.message.split("\n")[0] : String(error);
+  return `${what} failed: ${message}`;
+}
 
 const TRANSFER_ABI = [
   {
@@ -212,7 +230,7 @@ const TRANSFER_ABI = [
  * @param client - Public client for the attested network.
  * @param a - Attestation (already signature-checked).
  * @param minConfirmations - Depth the consumer requires.
- * @returns NOT_FOUND, MATCH or MISMATCH.
+ * @returns NOT_FOUND, MATCH, MISMATCH or UNAVAILABLE.
  */
 export async function checkSettlement(
   client: PublicClient,
@@ -220,17 +238,31 @@ export async function checkSettlement(
   minConfirmations = 1,
 ): Promise<SettlementOutcome> {
   const p = a.payload;
-  const chainId = await client.getChainId();
+  let chainId;
+  try {
+    chainId = await client.getChainId();
+  } catch (error) {
+    return { outcome: "UNAVAILABLE", detail: lookupFailed("eth_chainId", error) };
+  }
   if (p.network !== `eip155:${chainId}`) {
-    return { outcome: "NOT_FOUND", detail: `client is on eip155:${chainId}, attestation names ${p.network}` };
+    // This client cannot look at the attested network: no finding either way.
+    return { outcome: "UNAVAILABLE", detail: `client is on eip155:${chainId}, attestation names ${p.network}` };
   }
   let receipt;
   try {
     receipt = await client.getTransactionReceipt({ hash: p.transaction as Hex });
-  } catch {
-    return { outcome: "NOT_FOUND", detail: "no receipt for transaction" };
+  } catch (error) {
+    if (error instanceof TransactionReceiptNotFoundError) {
+      return { outcome: "NOT_FOUND", detail: "no receipt for transaction" };
+    }
+    return { outcome: "UNAVAILABLE", detail: lookupFailed("eth_getTransactionReceipt", error) };
   }
-  const head = await client.getBlockNumber({ cacheTime: 0 });
+  let head;
+  try {
+    head = await client.getBlockNumber({ cacheTime: 0 });
+  } catch (error) {
+    return { outcome: "UNAVAILABLE", detail: lookupFailed("eth_blockNumber", error) };
+  }
   if (head - receipt.blockNumber + 1n < BigInt(minConfirmations)) {
     return { outcome: "NOT_FOUND", detail: "not yet at the required depth" };
   }
